@@ -47,7 +47,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-exchange = ccxt.bybit({'enableRateLimit': True})
+# Configuración actualizada de CCXT para evitar el bloqueo 403 en Streamlit Cloud
+exchange = ccxt.bybit({
+    'enableRateLimit': True,
+    'options': {'defaultType': 'spot'}
+})
 
 # Sidebar Global
 st.sidebar.markdown('### ⚙️ Configuración Estrategia')
@@ -137,7 +141,6 @@ with tab_live:
             sl_p = entry_p - stop_loss_dist
             tp_p = entry_p + (stop_loss_dist * rr_ratio)
             
-            # LÓGICA: ¿Ya se activó? (Para compras, se activa si el precio bajó al VAL o más)
             is_triggered = current_price <= entry_p
             card_class = "signal-card-triggered" if is_triggered else "signal-card-long"
             title_class = "signal-title-triggered" if is_triggered else "signal-title-long"
@@ -163,7 +166,6 @@ with tab_live:
             sl_p = entry_p + stop_loss_dist
             tp_p = entry_p - (stop_loss_dist * rr_ratio)
             
-            # LÓGICA: ¿Ya se activó? (Para ventas, se activa si el precio subió al VAH o más)
             is_triggered = current_price >= entry_p
             card_class = "signal-card-triggered" if is_triggered else "signal-card-short"
             title_class = "signal-title-triggered" if is_triggered else "signal-title-short"
