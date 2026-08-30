@@ -47,21 +47,25 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Manejo multi-exchange para garantizar cero bloqueos de CloudFront/IP en la nube
+# Conexión resiliente libre de geobloqueo de IP en EE. UU.
 @st.cache_resource
-def get_exchange():
-    try:
-        ex = ccxt.bybit({
-            'enableRateLimit': True,
-            'urls': {'api': {'public': 'https://api.bytick.com'}}
-        })
-        ex.fetch_ohlcv('BTC/USDT', timeframe='15m', limit=5)
-        return ex, "Bybit Global"
-    except Exception:
-        ex = ccxt.binance({'enableRateLimit': True})
-        return ex, "Binance Data"
-
-exchange, ex_name = get_exchange()
+def get_working_exchange(symbol_name):
+    exchanges_to_try = [
+        ('okx', ccxt.okx({'enableRateLimit': True})),
+        ('kraken', ccxt.kraken({'enableRateLimit': True})),
+        ('coinbase', ccxt.coinbase({'enableRateLimit': True})),
+        ('gate', ccxt.gate({'enableRateLimit': True}))
+    ]
+    
+    for name, ex in exchanges_to_try:
+        try:
+            ex.fetch_ohlcv(symbol_name, timeframe='15m', limit=5)
+            return ex, name.upper()
+        except Exception:
+            continue
+            
+    # Fallback por defecto a Kraken
+    return ccxt.kraken({'enableRateLimit': True}), "KRAKEN (CLOUD SAFE)"
 
 # Sidebar Global
 st.sidebar.markdown('### ⚙️ Configuración Estrategia')
@@ -71,6 +75,8 @@ ny_window_only = st.sidebar.checkbox('Filtrar Sesión NY (09:30 - 12:00)', value
 use_ema = st.sidebar.checkbox('📈 Usar Filtro Tendencia (EMA 200)', value=True)
 rr_ratio = st.sidebar.number_input('Ratio Risk:Reward (1:N)', value=3.0, step=0.5)
 stop_loss_dist = st.sidebar.number_input('Stop Loss Distancia ($)', value=50.0, step=10.0)
+
+exchange, ex_name = get_working_exchange(symbol)
 
 # Header
 ny_tz = pytz.timezone('America/New_York')
@@ -199,7 +205,7 @@ with tab_live:
             st.warning("Calculando niveles de volumen del día...")
 
     except Exception as e:
-        st.error(f"Error conectando con el exchange: {e}")
+        st.error(f"Error conectando con el proveedor de datos: {e}")
 
 # --- TAB 2: HISTORICAL BACKTESTING ---
 with tab_backtest:
