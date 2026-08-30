@@ -47,11 +47,21 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Configuración actualizada de CCXT para evitar el bloqueo 403 en Streamlit Cloud
-exchange = ccxt.bybit({
-    'enableRateLimit': True,
-    'options': {'defaultType': 'spot'}
-})
+# Manejo multi-exchange para garantizar cero bloqueos de CloudFront/IP en la nube
+@st.cache_resource
+def get_exchange():
+    try:
+        ex = ccxt.bybit({
+            'enableRateLimit': True,
+            'urls': {'api': {'public': 'https://api.bytick.com'}}
+        })
+        ex.fetch_ohlcv('BTC/USDT', timeframe='15m', limit=5)
+        return ex, "Bybit Global"
+    except Exception:
+        ex = ccxt.binance({'enableRateLimit': True})
+        return ex, "Binance Data"
+
+exchange, ex_name = get_exchange()
 
 # Sidebar Global
 st.sidebar.markdown('### ⚙️ Configuración Estrategia')
@@ -71,7 +81,7 @@ st.markdown(f'''
         <div class="brand-title">Santi imab <span>Terminal Pro</span></div>
         <div class="brand-subtitle">Order Flow & Institutional Volume Profile Terminal</div>
     </div>
-    <div><span class="status-badge-active">● BYBIT CONNECTED ({now_ny_str})</span></div>
+    <div><span class="status-badge-active">● CONNECTED ({ex_name} | {now_ny_str})</span></div>
 </div>
 ''', unsafe_allow_html=True)
 
@@ -127,7 +137,7 @@ with tab_live:
         poc_live, vah_live, val_live = calculate_value_area(df_live.tail(96))
         
         lc1, lc2, lc3, lc4 = st.columns(4)
-        lc1.markdown(f'<div class="quant-card"><div class="card-label">Precio En Vivo</div><div class="card-value val-price">${current_price:,.2f}</div><div class="sub-info">{symbol} Bybit</div></div>', unsafe_allow_html=True)
+        lc1.markdown(f'<div class="quant-card"><div class="card-label">Precio En Vivo</div><div class="card-value val-price">${current_price:,.2f}</div><div class="sub-info">{symbol} ({ex_name})</div></div>', unsafe_allow_html=True)
         lc2.markdown(f'<div class="quant-card"><div class="card-label">VAH (Techo Liquidez)</div><div class="card-value val-vah">${vah_live if vah_live else 0:,.2f}</div><div class="sub-info">Resistencia 70% VA</div></div>', unsafe_allow_html=True)
         lc3.markdown(f'<div class="quant-card"><div class="card-label">POC (Point of Control)</div><div class="card-value val-poc">${poc_live if poc_live else 0:,.2f}</div><div class="sub-info">Máxima Acumulación</div></div>', unsafe_allow_html=True)
         lc4.markdown(f'<div class="quant-card"><div class="card-label">VAL (Piso Liquidez)</div><div class="card-value val-val">${val_live if val_live else 0:,.2f}</div><div class="sub-info">Soporte 70% VA</div></div>', unsafe_allow_html=True)
@@ -189,7 +199,7 @@ with tab_live:
             st.warning("Calculando niveles de volumen del día...")
 
     except Exception as e:
-        st.error(f"Error conectando con Bybit para datos en vivo: {e}")
+        st.error(f"Error conectando con el exchange: {e}")
 
 # --- TAB 2: HISTORICAL BACKTESTING ---
 with tab_backtest:
