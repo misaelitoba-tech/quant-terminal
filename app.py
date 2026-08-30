@@ -73,8 +73,8 @@ symbol = st.sidebar.text_input('Activo', 'BTC/USDT')
 timeframe = st.sidebar.selectbox('Temporalidad Velas', ['5m', '15m'], index=1)
 ny_window_only = st.sidebar.checkbox('Filtrar Sesión NY (09:30 - 12:00)', value=True)
 use_ema = st.sidebar.checkbox('📈 Usar Filtro Tendencia (EMA 200)', value=True)
-rr_ratio = st.sidebar.number_input('Ratio Risk:Reward (1:N)', value=3.0, step=0.5)
-stop_loss_dist = st.sidebar.number_input('Stop Loss Distancia ($)', value=50.0, step=10.0)
+rr_ratio = st.sidebar.number_input('Ratio Risk:Reward (1:N)', value=2.0, step=0.5)
+stop_loss_dist = st.sidebar.number_input('Stop Loss Distancia ($)', value=150.0, step=10.0)
 
 exchange, ex_name = get_working_exchange(symbol)
 
